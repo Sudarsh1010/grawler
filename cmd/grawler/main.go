@@ -9,8 +9,7 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
+	"github.com/sudarsh1010/grawler/internal/links"
 )
 
 func main() {
@@ -44,48 +43,12 @@ func main() {
 		log.Fatalf("Response failed with status code: %d", resp.StatusCode)
 	}
 
-	htmlNode, err := html.Parse(resp.Body)
+	parsedURLs, err := links.Extract(resp.Body, base.String())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	seen := make(map[string]struct{})
-	parsedURLs := []string{}
-
-	for node := range htmlNode.Descendants() {
-		if node.Type != html.ElementNode || node.DataAtom != atom.A {
-			continue
-		}
-
-		for _, a := range node.Attr {
-			if a.Key != "href" {
-				continue
-			}
-
-			ref, err := url.Parse(a.Val)
-			if err != nil {
-				continue
-			}
-
-			u := base.ResolveReference(ref)
-			u.Fragment = ""
-
-			if u.Host != base.Host {
-				continue
-			}
-
-			urlStr := u.String()
-
-			if _, exists := seen[urlStr]; exists {
-				continue
-			}
-
-			seen[urlStr] = struct{}{}
-			parsedURLs = append(parsedURLs, urlStr)
-		}
-	}
-
-	for _, v := range parsedURLs[:] {
+	for _, v := range parsedURLs {
 		fmt.Println(v)
 	}
 }
